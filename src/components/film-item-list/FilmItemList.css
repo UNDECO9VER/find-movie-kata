@@ -1,0 +1,14 @@
+.film-list{
+    display: grid;
+    margin: 0;
+    padding: 0;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 25px;
+}
+
+@media (max-width: 950px) {
+    .film-list{
+        grid-template-columns: repeat(1, 1fr);
+    }
+     
+}
