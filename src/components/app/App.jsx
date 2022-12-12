@@ -32,7 +32,7 @@ export default class App extends Component{
   }
 
   componentDidMount(){
-    this.tmdbService.getGuestToken()
+    this.tmdbService.getGuestToken().catch(()=> alert('Не удалось создать гостевую сессию'))
     this.getGenres()
     this.updateRatedFilmes()
   }
@@ -58,7 +58,7 @@ export default class App extends Component{
   }
 
   updateFilmes = (filmName, page = 1) =>{
-    this.setState({films: [],totalItems: 0,searchState: {loading: false, error: false, emptySearch: false}})
+    this.setState({films: [],totalItems: 0,searchState: {loading: true, error: false, emptySearch: false}})
     if(filmName.trim() === ''){
       this.setState({searchState: {loading: false, error: false, emptySearch: false}})
     }else{
@@ -171,7 +171,7 @@ export default class App extends Component{
     return(
       <div className='main-container'>
         <FilmGenresProvider value={genres}>
-          <Tabs items={items}/>
+          <Tabs centered items={items}/>
         </FilmGenresProvider>
       </div>
     )

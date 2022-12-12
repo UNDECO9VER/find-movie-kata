@@ -2,13 +2,10 @@ export default class TmdbService {
   _baseURL = 'https://api.themoviedb.org/3/'
   _apiKey = 'd7e0b9855f0f8bc1f89b40ec1f88c57c'
 
-  getResource = async  (url, method, body) =>{
+  getResource = async  (url) =>{
     const link = `${this._baseURL}${url}api_key=${this._apiKey}`
     try{
-      const res = await fetch(link, {
-        method: method,
-        body: body
-      })
+      const res = await fetch(link)
       return await res.json()
     }catch(err){
       throw new Error(`Could not fetch ${url}, receivd ${err.status}`)
