@@ -2,7 +2,6 @@
     display: flex;
     position: relative;
     width: 100%;
-    min-width: 350px;
     margin: auto;
     background-color: white;
     height: 400px;
@@ -20,7 +19,6 @@
 }
 
 .film-item__img{
-    /* height: 100%; */
     min-width: 260px;
     position: relative;
     background: url(./notFound.png);
