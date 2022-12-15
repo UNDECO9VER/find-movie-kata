@@ -52,7 +52,8 @@ export default class App extends Component{
 
   setMovies(movies){
     if (movies.results.length > 0) {
-      this.setState({films: movies.results,totalItems: movies.total_results,
+      const total = movies.total_results > 10000 ? 10000 : movies.total_results
+      this.setState({films: movies.results, totalItems: total,
         searchState: {loading: false, error: false, emptySearch: false}})
     }else{
       this.onEmptySearch()
