@@ -34,6 +34,7 @@ export default class App extends Component{
   componentDidMount(){
     this.tmdbService.getGuestToken().catch(()=> alert('Не удалось создать гостевую сессию'))
     this.getGenres()
+    this.getPopularMovies()
     this.updateRatedFilmes()
   }
 
@@ -51,7 +52,8 @@ export default class App extends Component{
 
   setMovies(movies){
     if (movies.results.length > 0) {
-      this.setState({films: movies.results,totalItems: movies.total_results})
+      this.setState({films: movies.results,totalItems: movies.total_results,
+        searchState: {loading: false, error: false, emptySearch: false}})
     }else{
       this.onEmptySearch()
     }
@@ -60,7 +62,8 @@ export default class App extends Component{
   updateFilmes = (filmName, page = 1) =>{
     this.setState({films: [],totalItems: 0,searchState: {loading: true, error: false, emptySearch: false}})
     if(filmName.trim() === ''){
-      this.setState({searchState: {loading: false, error: false, emptySearch: false}})
+      this.setState({searchState: {loading: true, error: false, emptySearch: false}})
+      this.getPopularMovies()
     }else{
       this.tmdbService
         .searchMoviesByName(`${filmName}`, page)
@@ -72,6 +75,24 @@ export default class App extends Component{
           this.onError()
         })
     }
+  }
+
+  searchFilmes =()=>{
+    if(this.state.page !== 1){
+      this.setState({page: 1})
+    }else(
+      this.updateFilmes(this.state.searchValue)
+    )
+  }
+
+  getPopularMovies =(page) =>{
+    this.tmdbService
+      .getPopularMovies(page)
+      .then((el)=>{
+        this.setMovies(el)
+      }).catch(()=>{
+        this.onError()
+      })
   }
 
   updateRatedFilmes = (page = 1) => {
@@ -93,14 +114,18 @@ export default class App extends Component{
       })
   }
 
-  debouncedSearch = debounce(this.updateFilmes, 200)
+  debouncedSearch = debounce(()=>{this.searchFilmes()}, 200)
 
   componentDidUpdate(prevProps, prevState){
     if(prevState.searchValue !== this.state.searchValue){
-      this.debouncedSearch(this.state.searchValue)
+      this.debouncedSearch()
     }
     if(prevState.page !== this.state.page){
-      this.updateFilmes(this.state.searchValue, this.state.page)
+      if(this.state.searchValue){
+        this.updateFilmes(this.state.searchValue, this.state.page)
+      } else{
+        this.getPopularMovies(this.state.page)
+      }
     }
     if(prevState.ratedPage !== this.state.ratedPage){
       this.updateRatedFilmes(this.state.ratedPage)
