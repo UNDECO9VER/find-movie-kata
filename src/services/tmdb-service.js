@@ -29,6 +29,10 @@ export default class TmdbService {
     return res
   }
 
+  getPopularMovies = async (page = 1)=>{
+    return await this.getResource(`movie/popular?page=${page}&`)
+  }
+
   getGenreMovieList = async () => {  
     return await this.getResource('genre/movie/list?')
   }
