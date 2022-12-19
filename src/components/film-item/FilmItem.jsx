@@ -1,12 +1,16 @@
 import React, { Component } from 'react'
-import {  Tag, Rate} from 'antd'
+import {  Tag, Rate, Spin} from 'antd'
 import { format, parseISO } from 'date-fns'
 import { v4 as uuidv4 } from 'uuid'
 
 import './FilmItem.css'
-import { FilmGenresConsumer } from '../film-genres-context/FilmGenresContext'
+import { FilmGenresConsumer } from '../../context/film-genres-context/FilmGenresContext'
 
 export default class FilmItem extends Component{
+
+  state ={
+    loaded: false
+  }
 
   stringCut(str){
     if(str.length > 350){
@@ -50,11 +54,12 @@ export default class FilmItem extends Component{
       }
     }
     const color = this.ratingToColorConverter(voteAverage)
-    const imgPath = `https://image.tmdb.org/t/p/original${posterPath}`
+    const imgPath = posterPath ? `https://image.tmdb.org/t/p/original${posterPath}` : ''
     return(
       <div className='film-item'>
         <div className='film-item__img'>
-          <img src={imgPath}/> 
+          {!this.state.loaded && <Spin size="large" style={{position: 'absolute', top: '50%', left: '50%'}}/>}
+          <img src={imgPath} style={this.state.loaded ? {} : {display: 'none'}} onError={()=> this.setState({loaded: true})} onLoad={()=> this.setState({loaded: true})}/> 
         </div>
         <div className='film-item__content'>
           <div className='film-item__header'>

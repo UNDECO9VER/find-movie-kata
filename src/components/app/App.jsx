@@ -2,7 +2,7 @@ import React, { Component } from 'react'
 import { Spin, Alert, Pagination, Tabs } from 'antd'
 import debounce from 'lodash.debounce'
 
-import { FilmGenresProvider } from '../film-genres-context/FilmGenresContext'
+import { FilmGenresProvider } from '../../context/film-genres-context/FilmGenresContext'
 import TmdbService from '../../services/tmdb-service'
 import FilmItemList from '../film-item-list/FilmItemList'
 import FilmFindForm from '../film-find-form/FilmFindForm'
@@ -32,10 +32,12 @@ export default class App extends Component{
   }
 
   componentDidMount(){
-    this.tmdbService.getGuestToken().catch(()=> alert('Не удалось создать гостевую сессию'))
+    this.tmdbService.getGuestToken().then(()=>{
+      this.getPopularMovies()
+      this.updateRatedFilmes()
+    }).catch(()=> alert('Не удалось создать гостевую сессию'))
     this.getGenres()
-    this.getPopularMovies()
-    this.updateRatedFilmes()
+
   }
 
   onMoviesLoaded(){
@@ -53,8 +55,13 @@ export default class App extends Component{
   setMovies(movies){
     if (movies.results.length > 0) {
       const total = movies.total_results > 10000 ? 10000 : movies.total_results
-      this.setState({films: movies.results, totalItems: total,
-        searchState: {loading: false, error: false, emptySearch: false}})
+      this.setState((state)=>
+      {
+        return{
+          films: this.setRatedFilmes(movies.results, state.ratedFilmes), totalItems: total,
+          searchState: {loading: false, error: false, emptySearch: false}
+        }
+      })
     }else{
       this.onEmptySearch()
     }
@@ -115,7 +122,18 @@ export default class App extends Component{
       })
   }
 
-  debouncedSearch = debounce(()=>{this.searchFilmes()}, 200)
+  setRatedFilmes =(filmes, ratedFilmes)=>{
+    return filmes.map((el)=>{
+      for(let i of ratedFilmes){
+        if(el.id === i.id) return i
+      }
+      return el 
+    })
+  }
+    
+  
+
+  debouncedSearch = debounce(()=>{this.searchFilmes()}, 300)
 
   componentDidUpdate(prevProps, prevState){
     if(prevState.searchValue !== this.state.searchValue){
@@ -131,15 +149,30 @@ export default class App extends Component{
     if(prevState.ratedPage !== this.state.ratedPage){
       this.updateRatedFilmes(this.state.ratedPage)
     }
+    if(prevState.ratedFilmes !== this.state.ratedFilmes){
+      this.setState(({films, ratedFilmes})=> {
+        return{
+          films: this.setRatedFilmes(films,ratedFilmes)
+        }
+      })
+    }
   }
 
-  rateMovie = (id, rating) =>{
-    this.tmdbService.guestRateMovie(id, rating)
-      .then(()=>{
-        this.updateRatedFilmes()
-      }).catch(()=>{
-        alert('Произошла ошибка при отправке данных на сервер')
+  rateMovie = async (id, rating) =>{
+    try{
+      await this.tmdbService.guestRateMovie(id, rating)
+      this.setState(({films})=>{
+        return{
+          films: films.map((el)=> el.id === id ? {...el, rating: rating} : el)
+        }
       })
+      this.updateRatedFilmes()
+    }catch{
+      if(!sessionStorage.getItem('guest_token')){
+        await this.tmdbService.getGuestToken()
+        await this.rateMovie()
+      }
+    }  
   }
 
   handleSearch = (e) =>{

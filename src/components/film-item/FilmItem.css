@@ -20,16 +20,27 @@
 
 .film-item__img{
     min-width: 260px;
+    max-width: 260px;
     position: relative;
-    background: url(./notFound.png);
-    background-repeat: no-repeat;
-    background-size: 100%;
-    background-position: 50%;
+
 }
 
 .film-item__img img{
     height: 100%;
     width: 100%;
+}
+
+.film-item__img img::after {
+    content: '';
+    top: 0;
+    left: 0;
+    background: url(./notFound.png);
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-repeat: no-repeat;
+    background-size: 100%;
+    background-position: 50%;
 }
 
 .film-item__content{
