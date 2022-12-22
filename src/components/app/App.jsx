@@ -1,15 +1,18 @@
 import React, { Component } from 'react'
-import { Spin, Alert, Pagination, Tabs } from 'antd'
+import { Tabs } from 'antd'
 import debounce from 'lodash.debounce'
 
-import { FilmGenresProvider } from '../../context/film-genres-context/FilmGenresContext'
+import FilmGenresContext from '../../context/film-genres-context/FilmGenresContext'
 import TmdbService from '../../services/tmdb-service'
 import FilmItemList from '../film-item-list/FilmItemList'
+import ComponentState from '../component-state/ComponentState'
 import FilmFindForm from '../film-find-form/FilmFindForm'
+import PaginationCustom from '../pagination-custom/PaginationCustom'
 import './App.css'
 
+const tmdbService = new TmdbService()
+
 export default class App extends Component{
-  tmdbService = new TmdbService()
 
   state = {
     films: [],
@@ -32,7 +35,7 @@ export default class App extends Component{
   }
 
   componentDidMount(){
-    this.tmdbService.getGuestToken().then(()=>{
+    tmdbService.getGuestToken().then(()=>{
       this.getPopularMovies()
       this.updateRatedFilmes()
     }).catch(()=> alert('Не удалось создать гостевую сессию'))
@@ -73,7 +76,7 @@ export default class App extends Component{
       this.setState({searchState: {loading: true, error: false, emptySearch: false}})
       this.getPopularMovies()
     }else{
-      this.tmdbService
+      tmdbService
         .searchMoviesByName(`${filmName}`, page)
         .then((el)=>{
           this.setMovies(el)
@@ -94,7 +97,7 @@ export default class App extends Component{
   }
 
   getPopularMovies =(page) =>{
-    this.tmdbService
+    tmdbService
       .getPopularMovies(page)
       .then((el)=>{
         this.setMovies(el)
@@ -103,19 +106,21 @@ export default class App extends Component{
       })
   }
 
-  updateRatedFilmes = (page = 1) => {
-    this.tmdbService.getRatedMovies(page)
-      .then((el)=>{
-        this.setState({ratedFilmes: el.results, 
-          totalRatedMovies: el.total_results,
-          ratedState: {loading: false, error: false}})
-      }).catch(()=>{
-        this.setState({ratedState: {loading: false, error: true}})
-      })
+  updateRatedFilmes = async (page = 1) => {
+    try{
+      this.setState({ratedState: {loading: true, error: false}})
+      const data = await tmdbService.getRatedMovies(page)
+      this.setState({ratedFilmes: data.results, 
+        totalRatedMovies: data.total_results,
+        ratedState: {loading: false, error: false}})
+    }catch{
+      this.setState({ratedState: {loading: false, error: true}})
+    }
+          
   }
 
   getGenres(){
-    this.tmdbService
+    tmdbService
       .getGenreMovieList()
       .then((el)=>{
         this.setState({genres: el.genres})
@@ -160,16 +165,15 @@ export default class App extends Component{
 
   rateMovie = async (id, rating) =>{
     try{
-      await this.tmdbService.guestRateMovie(id, rating)
+      await tmdbService.guestRateMovie(id, rating)
       this.setState(({films})=>{
         return{
           films: films.map((el)=> el.id === id ? {...el, rating: rating} : el)
         }
       })
-      this.updateRatedFilmes()
     }catch{
       if(!sessionStorage.getItem('guest_token')){
-        await this.tmdbService.getGuestToken()
+        await tmdbService.getGuestToken()
         await this.rateMovie()
       }
     }  
@@ -188,50 +192,35 @@ export default class App extends Component{
   }
   
   render(){
-    const{films,ratedFilmes,genres, page, totalItems,
+    const{films,ratedFilmes, genres, page, totalItems,
       totalRatedMovies, ratedPage, searchState, ratedState} = this.state
     const searchTab =  
-    <React.Fragment>
-      <FilmFindForm searchValue={this.state.searchValue} setSearchValue={this.handleSearch}/>
-      {searchState.loading && <Spin style={{position: 'fixed', top:'50%', left:'50%'}} size='large' tip='Loading...'/>}
-      {searchState.error && <Alert message='Connection Error' description='Ooops, somthing go wrong...' type='error'/>}
-      {searchState.emptySearch && <Alert message='Эх...' description='По вашему запросу ничего не найденно' type='info'/>}
-      {(searchState.loading==false && searchState.error==false) && <FilmItemList rateMovie={this.rateMovie} films={films}/>}
-      {totalItems > 0 
-        ? <Pagination 
-          className='pagination'
-          defaultCurrent={1} 
-          pageSize={20} 
-          onChange={(e)=> this.setPage(e)} 
-          current={page} 
-          total={totalItems} 
-          showSizeChanger={false}/> : null}
-    </React.Fragment>
+      <React.Fragment>
+        <FilmFindForm searchValue={this.state.searchValue} setSearchValue={this.handleSearch}/>
+        <ComponentState componentState={searchState}>
+          <FilmItemList rateMovie={this.rateMovie} films={films}/>
+        </ComponentState>
+        <PaginationCustom totalItems={totalItems} page={page} onChange={this.setPage}/>
+      </React.Fragment>
 
-    const ratedTab = <React.Fragment>
-      {ratedState.loading && <Spin style={{position: 'fixed',top: '50%', left: '50%'}} size='large' tip='Loading...'/>}
-      {ratedState.error && <Alert message='Connection Error' description='Ooops, something go wrong...' type='error'/>}
-      {(ratedState.loading==false && ratedState.error==false) && <FilmItemList rateMovie={this.rateMovie} films={ratedFilmes}/>}
-      {totalRatedMovies > 0 
-        ? <Pagination 
-          className='pagination'
-          defaultCurrent={1} 
-          pageSize={20} 
-          onChange={(e)=> this.setRatedPage(e)} 
-          current={ratedPage} 
-          total={totalRatedMovies} 
-          showSizeChanger={false}/> : null}
-    </React.Fragment>
+    const ratedTab = 
+      <React.Fragment>
+        <ComponentState componentState={ratedState}>
+          <FilmItemList rateMovie={this.rateMovie} films={ratedFilmes}/>
+        </ComponentState>
+        <PaginationCustom totalItems={totalRatedMovies} page={ratedPage} onChange={this.setRatedPage}/>
+      </React.Fragment>
 
     const items = [
       { label: 'Search', key: 'item-1', children: searchTab }, 
       { label: 'Rated', key: 'item-2', children: ratedTab },
     ]
+
     return(
       <div className='main-container'>
-        <FilmGenresProvider value={genres}>
-          <Tabs centered items={items}/>
-        </FilmGenresProvider>
+        <FilmGenresContext.Provider value={genres}>
+          <Tabs centered items={items} onTabClick={(key)=> {if(key === 'item-2') this.updateRatedFilmes()}}/>
+        </FilmGenresContext.Provider>
       </div>
     )
   }

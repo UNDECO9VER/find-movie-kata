@@ -1,10 +1,10 @@
 import React, { Component } from 'react'
-import {  Tag, Rate, Spin} from 'antd'
+import { Rate, Spin} from 'antd'
 import { format, parseISO } from 'date-fns'
-import { v4 as uuidv4 } from 'uuid'
-
 import './FilmItem.css'
-import { FilmGenresConsumer } from '../../context/film-genres-context/FilmGenresContext'
+
+import FilmRating from '../film-rating/FilmRating'
+import FilmGenres from '../film-genres/FilmGenres'
 
 export default class FilmItem extends Component{
 
@@ -23,15 +23,7 @@ export default class FilmItem extends Component{
     }else return str
   }
 
-  ratingToColorConverter = (value) =>{
-    switch(true){
-    case value >= 0 && value <= 3: return '#E90000'
-    case value > 3 && value <= 5: return '#E97E00'
-    case value > 5 && value <= 7: return '#E9D100'
-    case value > 7: return '#66E900'
-    default: return 'black'
-    }
-  }
+
 
   getGenresName = (genres, filmGenres)=>{
     return filmGenres.map((id) => {
@@ -42,9 +34,8 @@ export default class FilmItem extends Component{
   }
 
   render(){
-    const {title, posterPath, releaseDate, 
-      voteAverage, overview, rating, 
-      rateMovie, genreIds} = this.props
+    const {title, posterPath, releaseDate, overview, rating, 
+      rateMovie, genreIds, voteAverage} = this.props
     const time = () => {
       try{
         return format(parseISO(releaseDate), 'MMM dd, yyyy')
@@ -53,7 +44,6 @@ export default class FilmItem extends Component{
         return null
       }
     }
-    const color = this.ratingToColorConverter(voteAverage)
     const imgPath = posterPath ? `https://image.tmdb.org/t/p/original${posterPath}` : ''
     return(
       <div className='film-item'>
@@ -65,20 +55,12 @@ export default class FilmItem extends Component{
           <div className='film-item__header'>
             <h2 className='film-item__title'>{title}</h2>
             <span>{time()}</span>
-            <FilmGenresConsumer>
-              {(genres)=>
-                <div>
-                  {this.getGenresName(genres, genreIds).map((item) =>
-                    <Tag key={uuidv4()}>{item}</Tag>
-                  )}
-                </div>
-              }
-            </FilmGenresConsumer>
+            <FilmGenres genreIds={genreIds}/>
           </div>
           <span className='film-item__overview'>
             {this.stringCut(overview)}
           </span>
-          <div className='film-item__rating' style={{borderColor: color}}>{voteAverage}</div>
+          <FilmRating sx={{position: 'absolute', right: 10, top: 10}}  voteAverage={voteAverage}/>
           <Rate className='film-item__rate' onChange={(e) => rateMovie(this.props.filmId, e)} value={rating} count={10}/>
         </div>
       </div>
